@@ -66,7 +66,6 @@ enum bootcheck_return {
 };
 
 static const char* cmdline_hogger = ".\\rufus.com";
-static const char* ep_reg = "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer";
 static const char* vs_reg = "Software\\Microsoft\\VisualStudio";
 static const char* arch_name[ARCH_MAX] = {
 	"unknown", "x86_32", "x86_64", "ARM", "ARM64", "IA64", "RISC-V 64", "LoongArch 64", "EBC" };
@@ -3361,7 +3360,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	int wait_for_mutex = 0, forced_windows_version = 0;
 	uint32_t wue_options;
 	FILE* fd;
-	BOOL attached_console = FALSE, external_loc_file = FALSE, lgp_set = FALSE, automount = TRUE;
+	BOOL attached_console = FALSE, external_loc_file = FALSE, ndta_set = FALSE, automount = TRUE;
 	BOOL disable_hogger = FALSE, previous_enable_HDDs = FALSE, vc = IsRegistryNode(REGKEY_HKCU, vs_reg);
 	BOOL alt_pressed = FALSE, alt_command = FALSE;
 	BYTE *loc_data;
@@ -3825,9 +3824,8 @@ skip_args_processing:
 	// the Windows Services preventing access to the disk or volume we want to format.
 	EnablePrivileges();
 
-	// We use local group policies rather than direct registry manipulation
 	// 0x9e disables removable and fixed drive notifications
-	lgp_set = SetLGP(FALSE, &existing_key, ep_reg, "NoDriveTypeAutorun", 0x9e);
+	ndta_set = SetNDTA(FALSE, &existing_key, 0x9e);
 
 	// Re-enable AutoMount if needed
 	if (!GetAutoMount(&automount)) {
@@ -4327,8 +4325,8 @@ out:
 			safe_free(argv[i]);
 		safe_free(argv);
 	}
-	if (lgp_set)
-		SetLGP(TRUE, &existing_key, ep_reg, "NoDriveTypeAutorun", 0);
+	if (ndta_set)
+		SetNDTA(TRUE, &existing_key, 0);
 	if ((!automount) && (!SetAutoMount(FALSE)))
 		uprintf("Failed to restore AutoMount to disabled");
 	ubflush();
